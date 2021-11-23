@@ -16,6 +16,19 @@
     </head>
     <body>
         <h1>Wetter</h1>
-        <h2>24 Grad</h2>
+        <h2><span id="temparature">?</span> Grad</h2>
+
+        <script>
+            const el = document.getElementById("temparature");
+
+            (async function update() {
+                while(true) {
+                    const { value } = await (await fetch("/api/temperature")).json();
+                    el.textContent = value;
+
+                    await new Promise(res => setTimeout(res, 10_000));
+                }
+            })();
+        </script>
     </body>
 </html>
