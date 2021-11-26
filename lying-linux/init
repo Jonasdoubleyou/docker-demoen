@@ -1,0 +1,45 @@
+# --------------- SETUP -----------------------------------------
+
+# Create a dummy interface for cross-container communication
+ip link add name containers type bridge
+ip link set dev containers up
+ip a add 192.168.0.1/16 dev containers
+
+# Create a network namespace for container 1
+ip netns add  container1-ns
+# Create a virtual ethernet interface (a "tunnel") for container 1
+ip link add name container1-out  type veth peer name container1-in
+# Add the outer interface to the bridge
+ip link set container1-out master containers
+ip link set container1-out up
+# Move the inner interface to the network namespace
+ip link set container1-in netns container1-ns
+# Bind an IP to the inner interface
+ip netns exec container1-ns ip address add 192.168.2.1/24 dev container1-in
+ip netns exec container1-ns ip link set container1-in  up
+# Route all traffic from within the container through the interface
+ip netns exec container1-ns ip r add default via 192.168.2.1
+
+# Create a network namespace for container 2
+ip netns add  container2-ns
+ip link add name container2-out  type veth peer name container2-in
+ip link set container2-out master containers
+ip link set container2-out  up
+ip link set container2-in netns container2-ns
+ip netns exec container2-ns ip address add 192.168.3.1/24 dev container2-in
+ip netns exec container2-ns ip link set container2-in up
+ip netns exec container2-ns ip r add default via 192.168.3.1
+
+
+# ------------------- DEBUG OUTPUT -------------------------------
+echo -e '\n\n\n---------------- OUTER NETWORK ---------------'
+ip a show dev containers
+ip a show dev container1-out
+ip a show dev container2-out
+
+echo -e '\n\n\n---------------- CONTAINER 1 NETWORK ---------'
+sudo ip netns exec container1-ns ip a show dev container1-in
+
+echo -e '\n\n\n---------------- CONTAINER 2 NETWORK ---------'
+sudo ip netns exec container2-ns ip a show dev container2-in
+

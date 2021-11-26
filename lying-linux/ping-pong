@@ -1,0 +1,9 @@
+echo '----------- Host can ping container 1'
+ping -c 1 -q 192.168.2.1
+
+echo -e '\n\n\n---------- Host can ping container 2'
+ping -c 1 -q 192.168.3.1
+
+echo -e '\n\n\n---------- Container 1 can ping Host'
+ip netns exec container1-ns ping -c 1 -q 192.168.0.1
+

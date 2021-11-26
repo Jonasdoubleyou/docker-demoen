@@ -1,0 +1,4 @@
+ip netns del container1-ns
+ip netns del container2-ns
+
+ip l del dev containers
