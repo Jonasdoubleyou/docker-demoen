@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: dhbw-weather-frontend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: dhbw-weather
+    component: frontend
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: http
+    name: http
