@@ -42,6 +42,8 @@
 
 A list of all built-in/well-known labels can be found [here](https://kubernetes.io/docs/reference/labels-annotations-taints/).
 
+## Controller & control loop
+
 ## Cluster architectures
 
 - Single control plane, single node
@@ -83,14 +85,57 @@ Possible use cases are (list is not exhaustive):
 - **User/Tenant-assigned nodes:** Application tenants might request that their data is stored and processed on distinct nodes that serve no other purpose.
   This obligation might also be imposed by old service level agreements that the solution provider has still to hold up to.
 
+- label selector: nodes with certain isolation, security, or regulatory properties
+Using `NodeRestriction` admission plugin can prevent kubelets from modifying certain labels, such as those used for scheduling the workloads.
+
 Those use cases do, however, not share the implications the respective requirements would have on scheduling.
 Whereas scheduling critical workloads on more fail-proof is to be understood as a preference rather than as a strict requirement, disregarding those agreements might end up in contract violation and thus legal issues.
 This disparity resulted in the introduction of two distinct concepts: tolerations and taints, and affinity.
 The concepts of taints, tolerations and affinity do not only give end users control on where to schedule a workload, but also allows some other new concepts that are handled on the same abstraction level, such as the toleration of network failure.
 
+| concept | node | pod | effect |
+| --- | --- | --- | --- |
+| label selector | labels | `nodeSelector` | pods repel incompatible pods |
+| affinity | labels | affinity & anti-affinity (based on labels) | pods prefer/dislike matching pods |
+| taint & toleration | taint | toleration | nodes repel incompatible pods, nodes dislike incompatible pods |
+
+### Label selector
+
+Label selectors allow to confine scheduling in that pods with this selector can only be scheduled on nodes that match the specified labels.
+In the following example, a `disktype` label exists to indicate what type of persistent storage a node has been equipped with.
+The to-be-defined pod should only be scheduled on nodes that dispose of ssds.
+
+```yml
+apiVersion: v1
+kind: Pod
+metadata:
+  # 'name' and 'labels'
+spec:
+  # 'containers'
+  nodeSelector:
+    disktype: ssd
+```
+
+The pod will no longer be scheduled on any node not fulfilling this criterion.
+
 ### Affinity
 
+Affinity is similar to the concept of label selectors, but richer in expressiveness.
 
+First, whenever multiple labels have been defined in a label selector, all labels have to be matched so that the entire condition is met.
+  The affinity language enables the expression of more complicated relations between labels, using logical `Or`, `And`, `Lt`, `Gt`, `Exists`, `DoesNotExists`, `In`, and `NotIn` operators.
+  Furthermore, the mere existence of a label can be queried.
+Second, labels can not only be matched against node labels, but also against the labels of other pods in the same topological domain (such as a node, a rack, a cloud provider zone, a cloud provider region, etc).
+
+As this expressiveness comes at the cost of conciseness and runtime overhead, label selectors are unlikely to be superseded by affinity expressions.
+Also, those two features are not mutually exclusive.
+Whenever both, affinity rules and a label selector are given, both have to match for the pod to be scheduled onto a node.
+
+Another key difference consists in the consequences a mismatch has.
+In contrast to label selectors, affinity rules might also be declared as _soft_, meaning that not matching them expresses only a tendency against being scheduled on nodes in the respective topological domain.
+It can also be specified whether those restrictions should also be enforced for already running pods, letting Kubernetes reschedule them in case of any restriction violation.
+
+For more information on node affinity, refer to the [official documentation](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node).
 
 ### Taints and tolerations
 
@@ -133,3 +178,7 @@ For normal pods, those tolerations are set with a value of `tolerationSeconds` o
 
 Hyperscalers might decide to expose custom taints to indicate certain properties of nodes and differences between nodes, especially with regards to the nodes' billing models.
 In AKS (Azure Kubernetes Service), for instance, the `` taint indicates that the given instances are spot instances and might thus be terminated after 30 seconds after having notified the application.
+
+## Eviction signals of node-pressure eviction
+
+
