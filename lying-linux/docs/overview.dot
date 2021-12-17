@@ -1,0 +1,42 @@
+digraph G {
+    splines="line";
+    compound=true; // Allows edges between clusters, as implied by properties 'lhead' and 'ltail'
+
+    label="Linux host";
+    labelloc="t";
+
+    node [shape=square];
+
+    { start [label="start\n(ping)", shape="circle"]; }
+
+    { rank=same; 
+    loopback [label="localhost\n127.0.0.1"];
+    docker [label="docker0"];
+    eth [label="eth0"];
+    containers [label="containers\n[bridge]\n192.168.0.1/16\n"] }
+
+    { rank=same;
+    container1Out [label="container1-out"];
+    container2Out [label="container2-out"] }
+
+    subgraph clusterNs1 {
+        label="container1-ns";
+        labelloc="t";
+        container1In [label="container1-in\n192.168.2.1/24", shape="square"]
+    }
+
+    subgraph clusterNs2 {
+        label="container2-ns";
+        labelloc="t";
+    
+        container2In [label="container2-in\n192.168.3.1/24", shape="square"]
+    }
+
+    start -> containers;
+
+    containers -> container1Out;
+    containers -> container2Out;
+
+    container1Out -> container1In [label="peer route\n\"tunnel\"", lhead=clusterNs1];
+    container2Out -> container2In [label="peer route\n\"tunnel\"", lhead=clusterNs2];
+}
