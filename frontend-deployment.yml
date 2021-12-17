@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dhbw-weather-frontend
+spec:
+  selector:
+    matchLabels:
+      app: dhbw-weather
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: dhbw-weather
+        component: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: dhbwreg.azurecr.io/dhbw-demo-docker-frontend:v4
+        resources:
+          requests:
+            memory: 128Mi
+            cpu: 100m
+          limits:
+            memory: 256Mi
+            cpu: 200m
+        ports:
+        - containerPort: 80
+          name: http
