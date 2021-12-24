@@ -1,11 +1,16 @@
 # Kubernetes Terminology
 
+## How to read this document
+
+Some chapters contain _Advanced_ sections containing far-reaching information on how some of the core principles of Kubernetes are put into practice.
+It is not required for the full understanding of the core principles described in this document and may be skipped especially by readers who are not yet familiar with Kubernetes.
+
 ## Base terms
 
 ### Pods
 
-- Logical unit of a set of containers/Composed of one or more containers
-- Each pod has an ip address, networking rules and exposed pods
+A _pod_ is the smallest deployable compute unit that can be managed and created in a Kubernetes cluster.
+It is composed of one or more containers, has an IP address and networking rules assigned to it, and is always assigned to exactly one node which must be determined at creation time and cannot be changed later on.
 
 ### Deployment
 
@@ -13,12 +18,67 @@
 - Pod template with is associated with scaling and rollout polices
 - Consists of one or more replica set, whereby one replica set represents usually one set of container image versions
 
+A _deployment_ describes the desired state of a certain aspect of an application.
+In mot cases, it embodies the information on how many pods with what kind of containers should be running and how those scaling goals are being reached.
+It is thus often conceived as a thin layer around a container template providing additional metadata, providing precise information on the exact deployment.
+
+TODO: Rephrase
+In practice, pods are rarely created by manual means.
+
+For this reason, the official Kubernetes documentation also refers to them as thin wrappers of pods into an intelligent object that allows them to scale.
+It should, however, not mistakenly be deduced that a deployment requires a set of pods to start with.
+A deployment's set of pod is rather created during its lifetime.
+
+_**Advanced:** Under the hood, the creation of a deployment triggers the creation of a replica set which is responsible for scaling the application according to the scaling targets mandated by the scaling and rollout policies currently in place.
+Decoupling the concept of deployments and the unit that is responsible for actually scaling the application facilitates advanced operations such as rolling releases.
+A rolling update thus boils down to the creation of a new replica set with a set of new image versions and the decommission of the old one, whereby the target quotas are continuously adjusted by the deployment-managed policies._
+
+_A replica set does not necessarily belong to a deployment, though.
+This gives room for extensions and other concepts that might be abstracted in a similar manner._
+
+_**Advanced:** It is possible to create pods that neither belong to a deployment nor to a replica set (which are, in turn, not necessarily related to deployments) which are referred to as "naked pods".
+Whilst possible, it is not recommended to create them as they will not be rescheduled in case of failure._
+
+### Namespaces
+
+A _namespace_ is an abstraction used by Kubernetes to support multiple virtual clusters on the same physical cluster.
+
+_**Advanced:** By default, 4 namespaces are active on vanilla Kubernetes installations:_
+
+- _default: Namespace in which user workloads are managed._
+- _kube-node-lease: Helper namespaces in which the lease objects for the nodes are managed.
+  A lease object can be understood as a lightweight `NodeStatus` object which serves the single purpose of keeping track of the node's heartbeat
+  Sending entire `NodeStatus` objects across the wire has been [deemed wasteful](https://github.com/kubernetes/enhancements/blob/9e5e92ec0a693f114a687f05c909ec3d0ca1ea0a/keps/sig-node/589-efficient-node-heartbeats/kep.yaml)._
+- _kube-node-public: Namespace readable by all users._
+- _kube-system: Namespace for all objects created by the system and necessary for operating the cluster._
+  - _coredns (DNS server, primarily used in conjunction with server)_
+  - _etcd (strongly consistent, distributed key-value store used to store the cluster's status)_
+  - _kube-apiserver_
+  - _kube-controller-manager_
+  - _kube-scheduler_
+  - _storage-provisioner_
+
 ### Manifest files
 
-- Description of Kubernetes objects
+With kubectl and manifest files, Kubernetes offers two ways of creating new objects (such as pods, deployments, or ingresses) in the cluster.
+Whilst kubectl offers a direct way of control over the cluster for cluster administrators, developers, and other stakeholders regularly interacting with the cluster, manifest files provide a simple, declarative means to reproduce the creation of cluster objects.
+
+It is strongly recommended to use manifest files for all sort of objects that are required for the application's intended execution.
+Ideally, those files are stored in the same repository as the application's code itself as they declare the application's environment and constitute thus an integral part of its correct behavior.
 
 ### Cluster nodes
 
+With control plane nodes and worker nodes, Kubernetes clusters differentiate between two types of nodes which schedule different kinds of workloads.
+Whilst the latter constitute those nodes that workload containers are scheduled to, the prior execute all containers that are required for the cluster's correct operation; effectively hosting the services required for controlling the cluster.
+The ensemble of those services constitute the so-called control plane.
+
+Control plane nodes can also execute workload containers, even though it is not recommended as it might affect the cluster's stability.
+The inverse (worker nodes executing control plane workloads), however, does never hold true.
+
+_**Advanced:** Services that typically make up the control plane (by context they are associated with):_
+
+- _default_
+- _kube-node-lease_
 - Kubernetes differentiates between two types of nodes
   - Control plane nodes
     - Hosting cluster's control pane and thus services controlling the cluster
@@ -26,10 +86,6 @@
     - (workload) containers are never scheduled to control plane nodes
   - Nodes
     - Nodes the (workload) containers are scheduled to
-
-### Ingress controllers
-
-- Controller/Control loop within the Kubernetes environment that handles the creation of newly created ingress points, e.g. by creating new DNS entries in the DNS zone provided by the hyperscaler and/or by configuring an existing load balancer accordingly
 
 ### Node pools
 
@@ -43,6 +99,10 @@
 A list of all built-in/well-known labels can be found [here](https://kubernetes.io/docs/reference/labels-annotations-taints/).
 
 ## Controller & control loop
+
+### Ingress controllers
+
+- Controller/Control loop within the Kubernetes environment that handles the creation of newly created ingress points, e.g. by creating new DNS entries in the DNS zone provided by the hyperscaler and/or by configuring an existing load balancer accordingly
 
 ## Cluster architectures
 

@@ -37,12 +37,12 @@ The second expression is taking those and returns the array's last entry._
 ### Creating a resource group
 
 ```shell
-export RESOURCE_GROUP=
+export RESOURCE_GROUP=dhbw-weather-group
 export CLUSTER_NAME=dhbw-weather-app
 ```
 
 ```shell
-az group create --location westeurope --resource-group dhbw-weather-group
+az group create --location westeurope --resource-group $RESOURCE_GROUP
 ```
 
 ### Creating an AKS (Azure Kubernetes Services) cluster
